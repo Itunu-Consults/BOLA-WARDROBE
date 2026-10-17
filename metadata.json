@@ -1,0 +1,6 @@
+{
+  "name": "Bola Wardrobe — Boutique Fashion & Lifestyle",
+  "description": "Premium online fashion boutique offering classy ready-to-wear pieces, bags, feminine accessories, and cosmetics with seamless WhatsApp ordering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

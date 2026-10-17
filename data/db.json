@@ -1,0 +1,527 @@
+{
+  "settings": {
+    "brandName": "Bola Wardrobe",
+    "tagline": "Your Style, Beautifully Within Reach.",
+    "supportingStatement": "Discover thoughtfully selected fashion pieces that make everyday dressing feel special, without stretching your budget.",
+    "announcementText": "Everyday elegance, thoughtfully curated.",
+    "whatsappNumber": "https://wa.link/ghucjd",
+    "businessEmail": "ismailrofiatbolanle@gmail.com",
+    "instagramUrl": "https://instagram.com/bolawardrobe",
+    "facebookUrl": "https://facebook.com/bolawardrobe",
+    "tiktokUrl": "https://tiktok.com/@bolawardrobe",
+    "consultationEnabled": true,
+    "businessHours": "Monday – Saturday: 9:00 AM – 7:00 PM (WAT)",
+    "footerNote": "Feminine ready-to-wear, bags, jewelry, and beauty essentials crafted for confident everyday living.",
+    "metaTitle": "Bola Wardrobe — Boutique Fashion & Lifestyle",
+    "metaDescription": "Premium online fashion boutique offering classy ready-to-wear pieces, bags, feminine accessories, and cosmetics with seamless WhatsApp ordering."
+  },
+  "categories": [
+    {
+      "id": "cat-wears",
+      "slug": "wears",
+      "name": "Wears",
+      "tagline": "Artisanal Adire, Batik & Ready-to-Wear",
+      "description": "Effortless statement co-ords, tiered maxi skirts, and contemporary dresses crafted for everyday elegance.",
+      "image": "/images/categories/category-wears.jpg",
+      "displayOrder": 1
+    },
+    {
+      "id": "cat-bags",
+      "slug": "bags",
+      "name": "Bags",
+      "tagline": "Structured Satchels, Buckets & Totes",
+      "description": "Polished handbags, croc-embossed satchels, and versatile crossbody styles that elevate every ensemble.",
+      "image": "/images/categories/category-bags.jpg",
+      "displayOrder": 2
+    },
+    {
+      "id": "cat-accessories",
+      "slug": "accessories",
+      "name": "Accessories",
+      "tagline": "Jewelry, Cuffs, Clutches & Scarves",
+      "description": "Refined finishing accents, artisan-crafted bangles, and chic evening clutches to complete your personal style.",
+      "image": "/images/categories/category-accessories.jpg",
+      "displayOrder": 3
+    },
+    {
+      "id": "cat-cosmetics",
+      "slug": "cosmetics",
+      "name": "Cosmetics",
+      "tagline": "Radiant Skin, Lip Stains & Elixirs",
+      "description": "Thoughtfully curated clean beauty essentials designed to enhance your natural beauty and confidence.",
+      "image": "/images/categories/category-cosmetics.jpg",
+      "displayOrder": 4
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-wears-1",
+      "slug": "adire-swirl-two-piece-set",
+      "name": "Adire Swirl Two-Piece Set",
+      "category": "wears",
+      "shortDescription": "Artisanal hand-dyed Adire swirl print blouse with coordinating wide-leg trousers.",
+      "description": "Crafted in breathable cotton poplin, this statement two-piece set showcases an energetic swirl motif in rich emerald green, cobalt blue, and crisp ivory. Featuring an airy relaxed-fit top with side ties and fluid high-waisted wide-leg trousers, it transitions seamlessly from daytime social events to festive evening gatherings.",
+      "images": [
+        "/uploads/WhatsAppImage2026-10-16at16392-1792267549498.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Size",
+          "values": [
+            "UK 8 / S",
+            "UK 10 / M",
+            "UK 12 / L",
+            "UK 14 / XL",
+            "UK 16 / XXL"
+          ]
+        },
+        {
+          "name": "Color",
+          "values": [
+            "Emerald & Cobalt Swirl",
+            "Royal Blue & Indigo"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "New Arrival",
+      "specifications": {
+        "Material": "100% Premium Cotton Poplin",
+        "Top Closure": "V-neckline with adjustable side-tie drawstrings",
+        "Trouser Waist": "Comfort elasticated waist with wide-leg sweep",
+        "Origin": "Hand-dyed & crafted in Nigeria"
+      },
+      "careInstructions": "Hand wash cold with mild detergent or dry clean. Hang dry away from direct sunlight. Warm iron on reverse.",
+      "isPublished": true,
+      "isFeatured": true,
+      "createdAt": "2026-10-15T09:00:00.000Z",
+      "updatedAt": "2026-10-17T20:05:52.027Z"
+    },
+    {
+      "id": "prod-wears-2",
+      "slug": "tri-color-batik-tiered-maxi-skirt",
+      "name": "Tri-Color Batik Tiered Maxi Skirt",
+      "category": "wears",
+      "shortDescription": "Tiered full-length maxi skirt featuring contrasting graphic batik block panels.",
+      "description": "A celebration of modern African craftsmanship, this tiered skirt pairs three contrasting block prints in botanical green, deep vermilion red, and dramatic onyx black. The elasticated smocked waistband ensures all-day comfort and a flattering drape that moves gracefully with every step.",
+      "images": [
+        "/uploads/WhatsAppImage2026-10-16at16392-1792267534624.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Size",
+          "values": [
+            "S (UK 8–10)",
+            "M (UK 12–14)",
+            "L (UK 16–18)"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "Staff Pick",
+      "specifications": {
+        "Fabric": "100% Breathable Dyed Cotton",
+        "Waistband": "Smocked elastic with subtle gather",
+        "Length": "Full floor-skimming maxi sweep",
+        "Details": "Three distinct contrast tier blocks"
+      },
+      "careInstructions": "Gentle machine wash cold. Do not bleach. Line dry in shade. Warm iron.",
+      "isPublished": true,
+      "isFeatured": true,
+      "createdAt": "2026-10-15T09:15:00.000Z",
+      "updatedAt": "2026-10-17T20:05:37.505Z"
+    },
+    {
+      "id": "prod-wears-3",
+      "slug": "heritage-linear-striped-coord-set",
+      "name": "Heritage Linear Striped Buba & Trouser Set",
+      "category": "wears",
+      "shortDescription": "Contemporary striped tunic top paired with matching straight-cut trousers.",
+      "description": "Drawing inspiration from traditional loom woven aesthetics, this two-piece set features dynamic vertical and horizontal bands of vivid azure, crimson red, teal, and jet black. Designed for the modern woman who values distinction and effortless cultural elegance.",
+      "images": [
+        "/uploads/WhatsAppImage2026-10-16at16391-1792267513869.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Size",
+          "values": [
+            "UK 8",
+            "UK 10",
+            "UK 12",
+            "UK 14",
+            "UK 16"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "Bestseller",
+      "specifications": {
+        "Material": "Soft structured woven cotton blend",
+        "Neckline": "Split V-neck with woven accent border",
+        "Sleeves": "Three-quarter kimono sleeves",
+        "Trousers": "Straight-leg tailored fit"
+      },
+      "careInstructions": "Dry clean recommended or gentle hand wash.",
+      "isPublished": true,
+      "isFeatured": false,
+      "createdAt": "2026-10-15T09:30:00.000Z",
+      "updatedAt": "2026-10-17T20:05:17.851Z"
+    },
+    {
+      "id": "prod-bags-1",
+      "slug": "riviera-canvas-bucket-bag",
+      "name": "Riviera Canvas & Vegan Leather Bucket Bag",
+      "category": "bags",
+      "shortDescription": "Refined two-tone canvas bucket bag with cognac saddle leather trim and gold drawstring.",
+      "description": "The quintessential warm-weather and everyday companion. Crafted from durable woven oat canvas accented with rich cognac vegan leather and brushed champagne gold hardware. Includes both a comfortable top handle and an adjustable crossbody strap.",
+      "images": [
+        "/uploads/WhatsAppImage2026-10-16at16385-1792267805646.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Color",
+          "values": [
+            "Tan Saddle & Oat Canvas",
+            "Ebony Black & Oat Canvas"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "The Edit",
+      "specifications": {
+        "Dimensions": "22cm H × 20cm W × 14cm D",
+        "Strap Drop": "Adjustable 48cm–58cm crossbody strap",
+        "Interior": "Suedette lining with zippered slip pocket",
+        "Closure": "Braided leather drawstring cinch with gold grommets"
+      },
+      "careInstructions": "Spot clean canvas with a damp cloth. Wipe leather trim with a dry soft cloth.",
+      "isPublished": true,
+      "isFeatured": true,
+      "createdAt": "2026-10-15T10:00:00.000Z",
+      "updatedAt": "2026-10-17T20:10:07.991Z"
+    },
+    {
+      "id": "prod-bags-2",
+      "slug": "croc-embossed-executive-satchel",
+      "name": "Croc-Embossed Executive Satchel",
+      "category": "bags",
+      "shortDescription": "High-shine structured handbag with signature buckle strap detailing and detachable shoulder strap.",
+      "description": "Exude poise and polished sophistication. Made from premium crocodile-embossed vegan leather with a lustrous patent finish, dual rolled top handles, and sleek metal bar strap accents. Spacious enough for your daily essentials, tablet, and cosmetics.",
+      "images": [
+        "/uploads/WhatsAppImage2026-10-16at16385-1792267819527.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Color",
+          "values": [
+            "Glossy Onyx",
+            "Rich Cognac",
+            "Deep Wine / Burgundy",
+            "Creamy Nude",
+            "Ivory White",
+            "Sage Olive"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "Bestseller",
+      "specifications": {
+        "Dimensions": "30cm W × 24cm H × 13cm D",
+        "Material": "High-grade patent croc-embossed composite leather",
+        "Hardware": "Protective metal feet and reinforced buckle clasps",
+        "Compartments": "Triple compartment with central zip divider"
+      },
+      "careInstructions": "Wipe clean with a soft microfiber cloth. Store in dustbag when not in use.",
+      "isPublished": true,
+      "isFeatured": true,
+      "createdAt": "2026-10-15T10:15:00.000Z",
+      "updatedAt": "2026-10-17T20:10:21.952Z"
+    },
+    {
+      "id": "prod-bags-3",
+      "slug": "verona-structured-dome-handbag-set",
+      "name": "Verona Structured Dome Handbag Set",
+      "category": "bags",
+      "shortDescription": "Dual-piece set with a pebbled dome satchel and coordinating crescent coin pouch.",
+      "description": "A versatile 2-in-1 pairing featuring our signature pebbled leatherette dome handbag with sleek angled strap hardware and an accompanying half-moon organizer pouch. Perfect for effortless transition from boardroom meetings to weekend dinners.",
+      "images": [
+        "/uploads/WhatsAppImage2026-10-16at163jp-1792267834878.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Color",
+          "values": [
+            "Jet Black",
+            "Mocha Chocolate",
+            "Sand Beige",
+            "Ruby Crimson"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "New Arrival",
+      "specifications": {
+        "Handbag Size": "28cm W × 21cm H × 12cm D",
+        "Pouch Size": "18cm W × 11cm H crescent coin purse",
+        "Finish": "Scratch-resistant pebbled leatherette",
+        "Accessories": "Detachable & adjustable shoulder strap included"
+      },
+      "careInstructions": "Avoid direct heat. Store with stuffing to retain structured silhouette.",
+      "isPublished": true,
+      "isFeatured": true,
+      "createdAt": "2026-10-15T10:30:00.000Z",
+      "updatedAt": "2026-10-17T20:10:37.173Z"
+    },
+    {
+      "id": "prod-acc-1",
+      "slug": "artisan-textured-silver-bangle",
+      "name": "Artisan Textured Silver Bangle",
+      "category": "accessories",
+      "shortDescription": "Twisted cable cuff bracelet in polished sterling silver finish.",
+      "description": "A timeless wrist piece with intricate ribbed cable detailing and smooth spherical endcaps. Stacks effortlessly with watches or shines on its own as a refined signature touch for both traditional and western attire.",
+      "images": [
+        "/images/products/hammered-silver-bangles.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Finish",
+          "values": [
+            "Polished Sterling Silver",
+            "Champagne Gold Tone"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "Staff Pick",
+      "specifications": {
+        "Material": "Rhodium-plated hypoallergenic alloy",
+        "Diameter": "62mm flexible comfort-fit cuff",
+        "Weight": "28g solid weighted feel"
+      },
+      "careInstructions": "Keep away from perfume and moisture. Store in a soft pouch.",
+      "isPublished": true,
+      "isFeatured": false,
+      "createdAt": "2026-10-15T11:00:00.000Z",
+      "updatedAt": "2026-10-15T11:00:00.000Z"
+    },
+    {
+      "id": "prod-acc-2",
+      "slug": "croc-embossed-monogram-clutch",
+      "name": "Croc-Embossed Monogram Clutch",
+      "category": "accessories",
+      "shortDescription": "Compact ivory croc-embossed crossbody clutch with sleek metallic emblem.",
+      "description": "Designed to carry your evening essentials with understated elegance. Features an embossed crocodile texture, detachable link chain strap, and secure magnetic flap closure.",
+      "images": [
+        "/images/products/verona-dome-beige.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Color",
+          "values": [
+            "Alabaster Ivory",
+            "Midnight Black"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "The Edit",
+      "specifications": {
+        "Dimensions": "19cm W × 13cm H × 5cm D",
+        "Chain Strap": "115cm detachable metal link chain",
+        "Closure": "Concealed magnetic snap clasp"
+      },
+      "careInstructions": "Wipe gently with dry cotton cloth.",
+      "isPublished": true,
+      "isFeatured": true,
+      "createdAt": "2026-10-15T11:15:00.000Z",
+      "updatedAt": "2026-10-15T11:15:00.000Z"
+    },
+    {
+      "id": "prod-cos-1",
+      "slug": "radiant-glow-hydrating-primer-mist",
+      "name": "Radiant Glow Hydrating Primer Mist",
+      "category": "cosmetics",
+      "shortDescription": "Dewy setting spray and prep mist infused with rosewater and hyaluronic acid.",
+      "description": "Prep, hydrate, and lock in your look with this ultra-fine illuminating mist. Enriched with botanical extracts and niacinamide, it leaves skin with a natural healthy glow suitable for tropical and temperate climates alike.",
+      "images": [
+        "/images/products/botanical-elixir.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Volume",
+          "values": [
+            "100ml / 3.4 fl oz",
+            "50ml Travel Size"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "New Arrival",
+      "specifications": {
+        "Key Ingredients": "Hyaluronic Acid, Rose Damascena Water, Aloe Vera Extract",
+        "Formula": "Alcohol-free, paraben-free, non-comedogenic",
+        "Finish": "Dewy, radiant skin finish"
+      },
+      "careInstructions": "Store in a cool place away from direct sunlight.",
+      "isPublished": true,
+      "isFeatured": false,
+      "createdAt": "2026-10-15T12:00:00.000Z",
+      "updatedAt": "2026-10-15T12:00:00.000Z"
+    },
+    {
+      "id": "prod-cos-2",
+      "slug": "velvet-matte-longwear-lip-stain",
+      "name": "Velvet Matte Longwear Lip Stain",
+      "category": "cosmetics",
+      "shortDescription": "Weightless non-drying liquid lip stain with rich pigment payoff.",
+      "description": "Formulated with nourishing shea butter and jojoba oil to deliver intense, soft-focus matte color that stays comfortable and transfer-resistant throughout your day.",
+      "images": [
+        "/images/products/velvet-matte-lip.jpg"
+      ],
+      "variants": [
+        {
+          "name": "Shade",
+          "values": [
+            "Nude Allure (Warm Mauve)",
+            "Red Velvet (True Crimson)",
+            "Berry Sovereign (Deep Plum)",
+            "Caramel Kiss (Warm Brown)"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "Bestseller",
+      "specifications": {
+        "Finish": "Soft velvet matte",
+        "Wear Time": "Up to 12 hours comfortable wear",
+        "Features": "Infused with Vitamin E and Jojoba Seed Oil"
+      },
+      "careInstructions": "Close cap tightly after each use.",
+      "isPublished": true,
+      "isFeatured": true,
+      "createdAt": "2026-10-15T12:15:00.000Z",
+      "updatedAt": "2026-10-15T12:15:00.000Z"
+    }
+  ],
+  "bookings": [
+    {
+      "id": "book-seed-1",
+      "fullName": "Folashade Adeleke",
+      "whatsapp": "2348031234567",
+      "email": "folashade@example.com",
+      "consultationType": "Outfit recommendations",
+      "preferredDate": "2026-10-24",
+      "preferredTime": "11:00 AM",
+      "categoryInterest": "Wears & Bags",
+      "budgetRange": "Mid-Tier Classy",
+      "preferredStyle": "Elegant wedding guest styling",
+      "notes": "Interested in coordinating Adire blouse with the Croc Satchel",
+      "status": "pending",
+      "createdAt": "2026-10-16T14:20:00.000Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord-1792266613248",
+      "productId": "prod-wears-2",
+      "productName": "Tri-Color Batik Tiered Maxi Skirt",
+      "productSlug": "tri-color-batik-tiered-maxi-skirt",
+      "selectedOptions": {},
+      "quantity": 1,
+      "status": "new",
+      "createdAt": "2026-10-17T19:50:13.248Z"
+    },
+    {
+      "id": "ord-1792262437341",
+      "productId": "prod-wears-1",
+      "productName": "Adire Swirl Two-Piece Set",
+      "productSlug": "adire-swirl-two-piece-set",
+      "selectedOptions": {},
+      "quantity": 1,
+      "status": "new",
+      "createdAt": "2026-10-17T18:40:37.341Z"
+    },
+    {
+      "id": "ord-1792262080076",
+      "productId": "prod-cos-2",
+      "productName": "Velvet Matte Longwear Lip Stain",
+      "productSlug": "velvet-matte-longwear-lip-stain",
+      "selectedOptions": {},
+      "quantity": 1,
+      "status": "new",
+      "createdAt": "2026-10-17T18:34:40.076Z"
+    },
+    {
+      "id": "ord-1792261672060",
+      "productId": "prod-wears-1",
+      "productName": "Adire Swirl Two-Piece Set",
+      "productSlug": "adire-swirl-two-piece-set",
+      "selectedOptions": {},
+      "quantity": 1,
+      "status": "new",
+      "createdAt": "2026-10-17T18:27:52.060Z"
+    },
+    {
+      "id": "ord-1792261655334",
+      "productId": "prod-wears-2",
+      "productName": "Tri-Color Batik Tiered Maxi Skirt",
+      "productSlug": "tri-color-batik-tiered-maxi-skirt",
+      "selectedOptions": {},
+      "quantity": 1,
+      "status": "new",
+      "createdAt": "2026-10-17T18:27:35.334Z"
+    },
+    {
+      "id": "ord-seed-1",
+      "productId": "prod-wears-1",
+      "productName": "Adire Swirl Two-Piece Set",
+      "productSlug": "adire-swirl-two-piece-set",
+      "selectedOptions": {
+        "Size": "UK 10 / M",
+        "Colorway": "Emerald & Cobalt Swirl"
+      },
+      "quantity": 1,
+      "customerName": "Zainab Balogun",
+      "customerPhone": "2348029876543",
+      "customerEmail": "zainab@example.com",
+      "customerNotes": "Prefers delivery to Lekki Phase 1",
+      "status": "new",
+      "createdAt": "2026-10-16T16:45:00.000Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-1792263560341",
+      "name": "Bolanle Taylor",
+      "contact": "08012345678",
+      "subject": "Adire Swirl Sizing",
+      "message": "Hello, I would like to confirm UK size 12 availability.",
+      "status": "unread",
+      "createdAt": "2026-10-17T18:59:20.341Z"
+    },
+    {
+      "id": "msg-1792262492485",
+      "name": "hello",
+      "contact": "0727722",
+      "subject": "572762",
+      "message": "52772727",
+      "status": "unread",
+      "createdAt": "2026-10-17T18:41:32.485Z"
+    },
+    {
+      "id": "msg-seed-1",
+      "name": "Oluwaseun Bakare",
+      "contact": "oluwaseun@example.com",
+      "subject": "Wholesale & Custom Orders Inquiry",
+      "message": "Hello, do you accept orders for bridal train sets in custom Adire prints?",
+      "status": "unread",
+      "createdAt": "2026-10-16T11:10:00.000Z"
+    }
+  ],
+  "admin": {
+    "username": "admin",
+    "salt": "ffe8457fdfb1f202c953d297a4f0ebdc",
+    "passwordHash": "87ac101e08c537c7d43abe4fa2ffc9238fd706dc1f11b713b365778b3dc3802d3d1fb73cbf02815b19353e5a68d894f139b6b61862351696c9833cbe9c81b47f",
+    "passwordMustChange": false
+  }
+}
