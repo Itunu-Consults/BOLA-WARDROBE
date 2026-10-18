@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../context/StoreContext';
-import { MessageCircle, Mail, Clock, Instagram, Facebook, ArrowUpRight } from 'lucide-react';
+import { MessageCircle, Mail, Clock, Instagram, Facebook, ArrowUpRight, Lock } from 'lucide-react';
 import { createGeneralInquiryWhatsappUrl } from '../utils/whatsapp';
 
 interface FooterProps {
@@ -256,7 +256,17 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
 
         {/* Bottom Sub-Footer */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#71717A]">
-          <p>© {currentYear} Bola Wardrobe. All rights reserved.</p>
+          <div className="flex items-center gap-2">
+            <p>© {currentYear} Bola Wardrobe. All rights reserved.</p>
+            <button
+              onClick={() => navigate('/admin')}
+              className="text-[#52525B] hover:text-[#B99A5B] transition-colors p-1"
+              title="Admin Portal (Staff Only)"
+              aria-label="Staff Login"
+            >
+              <Lock className="w-3 h-3" />
+            </button>
+          </div>
           <p className="text-center sm:text-right">
             Your Style, Beautifully Within Reach. · Classy fashion, thoughtful choices, everyday elegance.
           </p>

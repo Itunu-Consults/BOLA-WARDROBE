@@ -36,15 +36,39 @@ function AppContent() {
     () => new URLSearchParams(window.location.search)
   );
 
-  // Synchronize browser history
+  // Synchronize browser history and hash navigation
   useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/');
+    const handleLocationChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#admin') {
+        setCurrentPath('/admin');
+      } else {
+        setCurrentPath(window.location.pathname || '/');
+      }
       setSearchParams(new URLSearchParams(window.location.search));
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    // Keyboard shortcut for owner: Ctrl+Shift+A or Cmd+Shift+A
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        navigate('/admin');
+      }
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    window.addEventListener('keydown', handleKeyDown);
+
+    if (window.location.hash === '#admin') {
+      setCurrentPath('/admin');
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const navigate = (to: string) => {
@@ -56,21 +80,11 @@ function AppContent() {
   };
 
   // Admin routing logic
-  const isAdminRoute = currentPath.startsWith('/admin');
+  const isAdminRoute = currentPath.startsWith('/admin') || currentPath === '/admin' || (typeof window !== 'undefined' && window.location.hash === '#admin');
 
   if (isAdminRoute) {
-    if (currentPath === '/admin/login') {
-      if (adminToken && adminUser) {
-        navigate('/admin');
-        return null;
-      }
-      return <AdminLoginPage navigate={navigate} />;
-    }
-
-    // Guard other admin routes
     if (!adminToken) {
-      navigate('/admin/login');
-      return null;
+      return <AdminLoginPage navigate={navigate} />;
     }
 
     // Determine active admin tab from path
@@ -78,6 +92,10 @@ function AppContent() {
     if (currentPath.includes('/admin/products')) activeTab = 'products';
     else if (currentPath.includes('/admin/orders')) activeTab = 'orders';
     else if (currentPath.includes('/admin/bookings')) activeTab = 'bookings';
+    else if (currentPath.includes('/admin/categories')) activeTab = 'categories';
+    else if (currentPath.includes('/admin/messages')) activeTab = 'messages';
+    else if (currentPath.includes('/admin/media')) activeTab = 'media';
+    else if (currentPath.includes('/admin/settings')) activeTab = 'settings';
     else if (currentPath.includes('/admin/categories')) activeTab = 'categories';
     else if (currentPath.includes('/admin/messages')) activeTab = 'messages';
     else if (currentPath.includes('/admin/media')) activeTab = 'media';
