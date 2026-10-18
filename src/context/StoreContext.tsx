@@ -117,21 +117,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: JSON.stringify({ username, password }),
       });
-      const data = await res.json();
+
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text().catch(() => '');
+        return { success: false, error: text || `Authentication server responded with error ${res.status}` };
+      }
+
       if (res.ok && data.success) {
         setAdminToken(data.token);
         setAdminUser(data.user);
         localStorage.setItem(TOKEN_KEY, data.token);
-        await refreshProducts();
+        refreshProducts().catch(err => console.warn('Product refresh warning after login:', err));
         return { success: true };
       } else {
-        return { success: false, error: data.error || 'Authentication failed' };
+        return { success: false, error: data.error || `Authentication failed (${res.status})` };
       }
     } catch (err: any) {
-      return { success: false, error: 'Network error connecting to authentication server' };
+      console.error('Login network error:', err);
+      return { 
+        success: false, 
+        error: err?.message ? `Network connection error: ${err.message}` : 'Network error connecting to authentication server' 
+      };
     }
   };
 
