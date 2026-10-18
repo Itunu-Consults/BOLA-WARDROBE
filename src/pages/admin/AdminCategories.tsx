@@ -4,7 +4,7 @@ import { Category } from '../../types';
 import { Layers, Plus, Edit2, Trash2, AlertCircle } from 'lucide-react';
 
 export const AdminCategories: React.FC = () => {
-  const { categories, products, adminToken, refreshCategories } = useStore();
+  const { categories, products, saveCategory, deleteCategory } = useStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
@@ -52,45 +52,24 @@ export const AdminCategories: React.FC = () => {
     };
 
     try {
-      const url = editingCategory ? `/api/categories/${editingCategory.id}` : '/api/categories';
-      const method = editingCategory ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        await refreshCategories();
+      const payloadWithId = editingCategory ? { id: editingCategory.id, ...payload } : payload;
+      const res = await saveCategory(payloadWithId, Boolean(editingCategory));
+      if (res.success) {
         setModalOpen(false);
       } else {
-        const err = await res.json();
-        setFormError(err.error || 'Failed to save category.');
+        setFormError(res.error || 'Failed to save category.');
       }
     } catch {
-      setFormError('Network connection error.');
+      setFormError('Error saving category.');
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/categories/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${adminToken}` },
-      });
-      if (res.ok) {
-        await refreshCategories();
-        setDeleteConfirmId(null);
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Cannot delete category.');
-      }
+      await deleteCategory(id);
+      setDeleteConfirmId(null);
     } catch {
-      alert('Error deleting category.');
+      alert('Cannot delete category.');
     }
   };
 

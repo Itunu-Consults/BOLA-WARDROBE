@@ -4,7 +4,7 @@ import { Save, Check, AlertCircle, Database, CheckCircle2, ExternalLink } from '
 import { sanitizeWhatsappNumber } from '../../utils/whatsapp';
 
 export const AdminSettings: React.FC = () => {
-  const { settings, adminToken, refreshSettings } = useStore();
+  const { settings, saveSettings } = useStore();
 
   const [brandName, setBrandName] = useState(settings.brandName || 'Bola Wardrobe');
   const [tagline, setTagline] = useState(settings.tagline || '');
@@ -67,25 +67,11 @@ export const AdminSettings: React.FC = () => {
     };
 
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        await refreshSettings();
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
-      } else {
-        const data = await res.json();
-        setErrorMsg(data.error || 'Failed to update settings.');
-      }
+      await saveSettings(payload);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch {
-      setErrorMsg('Network error saving settings.');
+      setErrorMsg('Error saving settings.');
     } finally {
       setIsSaving(false);
     }

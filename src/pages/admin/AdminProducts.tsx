@@ -14,13 +14,14 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { ProductVisual } from '../../components/ProductVisual';
+import { compressImage } from '../../utils/imageCompressor';
 
 interface AdminProductsProps {
   navigate: (path: string) => void;
 }
 
 export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
-  const { products, categories, adminToken, refreshProducts } = useStore();
+  const { products, categories, adminToken, refreshProducts, saveProduct, deleteProduct } = useStore();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -98,18 +99,17 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
     setModalOpen(true);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 8 * 1024 * 1024) {
-      alert('File size exceeds 8MB limit.');
-      return;
-    }
+    try {
+      // 1. Immediately compress image on the client down to a high-quality lightweight web JPEG (<250KB)
+      const optimizedDataUrl = await compressImage(file, 1200, 1200, 0.82);
+      // Immediately set the image preview so user sees it right away!
+      setImageUrl(optimizedDataUrl);
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
+      // 2. Also attempt upload to server if backend is reachable
       try {
         const res = await fetch('/api/media/upload', {
           method: 'POST',
@@ -117,20 +117,18 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${adminToken}`,
           },
-          body: JSON.stringify({ dataUrl, filename: file.name }),
+          body: JSON.stringify({ dataUrl: optimizedDataUrl, filename: file.name }),
         });
-        const data = await res.json();
-        if (res.ok && data.url) {
-          setImageUrl(data.url);
-        } else {
-          // If upload fails, use dataUrl directly
-          setImageUrl(dataUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.url) setImageUrl(data.url);
         }
       } catch {
-        setImageUrl(dataUrl);
+        // Local preview remains active!
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      alert('Unable to process photo: ' + (err?.message || 'Please choose a standard image file'));
+    }
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -169,7 +167,8 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
       }
     });
 
-    const payload = {
+    const payload: Partial<Product> = {
+      ...(editingProduct ? { id: editingProduct.id } : {}),
       name: name.trim(),
       category,
       shortDescription: shortDesc.trim(),
@@ -177,7 +176,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
       images: imageUrl.trim() ? [imageUrl.trim()] : ['/images/products/placeholder.svg'],
       variants,
       availability,
-      label: label.trim() || null,
+      label: (label.trim() as any) || null,
       specifications,
       careInstructions: careInstructions.trim(),
       isPublished,
@@ -185,27 +184,14 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
     };
 
     try {
-      const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
-      const method = editingProduct ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        await refreshProducts();
+      const result = await saveProduct(payload, Boolean(editingProduct));
+      if (result.success) {
         setModalOpen(false);
       } else {
-        const err = await res.json();
-        setFormError(err.error || 'Failed to save product.');
+        setFormError(result.error || 'Failed to save product.');
       }
     } catch {
-      setFormError('Connection error saving product.');
+      setFormError('Error saving product.');
     } finally {
       setIsSubmitting(false);
     }
@@ -213,52 +199,19 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
 
   const handleDeleteProduct = async (id: string) => {
     try {
-      const res = await fetch(`/api/products/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${adminToken}` },
-      });
-      if (res.ok) {
-        await refreshProducts();
-        setDeleteConfirmId(null);
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete product.');
-      }
+      await deleteProduct(id);
+      setDeleteConfirmId(null);
     } catch {
-      alert('Network error deleting product.');
+      alert('Failed to delete product.');
     }
   };
 
   const togglePublish = async (p: Product) => {
-    try {
-      await fetch(`/api/products/${p.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify({ isPublished: !p.isPublished }),
-      });
-      await refreshProducts();
-    } catch {
-      // ignore
-    }
+    await saveProduct({ id: p.id, isPublished: !p.isPublished }, true);
   };
 
   const toggleFeatured = async (p: Product) => {
-    try {
-      await fetch(`/api/products/${p.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify({ isFeatured: !p.isFeatured }),
-      });
-      await refreshProducts();
-    } catch {
-      // ignore
-    }
+    await saveProduct({ id: p.id, isFeatured: !p.isFeatured }, true);
   };
 
   const filteredProducts = products.filter((p) => {

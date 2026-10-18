@@ -55,6 +55,40 @@
   ],
   "products": [
     {
+      "id": "prod-1792315348741",
+      "slug": "luxe-gold-silk-kaftan",
+      "name": "Luxe Gold Silk Kaftan",
+      "category": "wears",
+      "shortDescription": "",
+      "description": "",
+      "images": [
+        "/images/products/placeholder.svg"
+      ],
+      "variants": [
+        {
+          "name": "Size",
+          "values": [
+            "UK 8",
+            "UK 10",
+            "UK 12",
+            "UK 14",
+            "UK 16"
+          ]
+        }
+      ],
+      "availability": "in_stock",
+      "label": "New Arrival",
+      "specifications": {
+        "Material": "Premium Cotton",
+        "Fit": "Relaxed"
+      },
+      "careInstructions": "Hand wash cold or dry clean. Hang dry away from direct sunlight.",
+      "isPublished": true,
+      "isFeatured": false,
+      "createdAt": "2026-10-18T09:22:28.741Z",
+      "updatedAt": "2026-10-18T09:22:28.741Z"
+    },
+    {
       "id": "prod-wears-1",
       "slug": "adire-swirl-two-piece-set",
       "name": "Adire Swirl Two-Piece Set",
