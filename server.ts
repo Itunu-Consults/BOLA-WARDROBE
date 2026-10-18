@@ -156,11 +156,33 @@ function saveDatabase(db: DatabaseSchema) {
 
 let db = loadDatabase();
 
-// In-memory active session tokens
-const activeSessions = new Map<string, { username: string; expiresAt: number }>();
+// Cryptographically Signed HMAC Admin Tokens (Persist across restarts)
+const SESSION_SECRET = process.env.SESSION_SECRET || 'bola_wardrobe_secret_key_2026';
 
-function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+function generateToken(username = 'admin'): string {
+  const payload = `${username}:${Date.now()}`;
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+  return `${Buffer.from(payload).toString('base64url')}.${signature}`;
+}
+
+function verifyToken(token: string): { valid: boolean; username: string } {
+  if (!token) return { valid: false, username: '' };
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 2) return { valid: false, username: '' };
+    const [payloadB64, signature] = parts;
+    const payload = Buffer.from(payloadB64, 'base64url').toString('utf-8');
+    const expected = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('hex');
+    if (signature.length === expected.length && crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+      const [username, timestampStr] = payload.split(':');
+      const timestamp = Number(timestampStr);
+      // Valid for 7 days
+      if (Date.now() - timestamp < 7 * 24 * 60 * 60 * 1000) {
+        return { valid: true, username: username || 'admin' };
+      }
+    }
+  } catch {}
+  return { valid: false, username: '' };
 }
 
 // Authentication Middleware
@@ -172,14 +194,12 @@ function authenticateAdmin(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: 'Unauthorized: Admin authentication required' });
   }
 
-  const session = activeSessions.get(token);
-  if (!session || session.expiresAt < Date.now()) {
-    if (session) activeSessions.delete(token);
+  const verified = verifyToken(token);
+  if (!verified.valid) {
     return res.status(401).json({ error: 'Unauthorized: Session expired or invalid' });
   }
 
-  // Extend session by 2 hours
-  session.expiresAt = Date.now() + 2 * 60 * 60 * 1000;
+  (req as any).adminUser = verified.username;
   next();
 }
 
@@ -365,7 +385,7 @@ app.delete('/api/categories/:id', authenticateAdmin, (req: Request, res: Respons
 // Products
 app.get('/api/products', (req: Request, res: Response) => {
   const token = req.headers.authorization?.slice(7) || (req.headers['x-admin-token'] as string);
-  const isAdmin = token && activeSessions.has(token);
+  const isAdmin = Boolean(token && verifyToken(token).valid);
 
   const category = req.query.category as string | undefined;
   const search = req.query.search as string | undefined;
@@ -394,7 +414,7 @@ app.get('/api/products', (req: Request, res: Response) => {
 app.get('/api/products/:slugOrId', (req: Request, res: Response) => {
   const { slugOrId } = req.params;
   const token = req.headers.authorization?.slice(7) || (req.headers['x-admin-token'] as string);
-  const isAdmin = token && activeSessions.has(token);
+  const isAdmin = Boolean(token && verifyToken(token).valid);
 
   const product = db.products.find(p => p.slug === slugOrId || p.id === slugOrId);
   if (!product) {
@@ -707,12 +727,7 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
     (cleanPass === 'Bolar@247' || cleanPass === DEFAULT_ADMIN_PASSWORD || inputHash === db.admin.passwordHash);
 
   if (isValidAdmin) {
-    const token = generateToken();
-    const now = Date.now();
-    activeSessions.set(token, {
-      username: db.admin.username,
-      expiresAt: now + 8 * 60 * 60 * 1000, // 8 hours
-    });
+    const token = generateToken(db.admin.username);
 
     return res.json({
       success: true,
@@ -732,17 +747,16 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
   const token = req.headers.authorization?.slice(7) || (req.headers['x-admin-token'] as string);
   if (!token) return res.status(401).json({ error: 'Not authenticated' });
 
-  const session = activeSessions.get(token);
-  if (!session || session.expiresAt < Date.now()) {
-    if (session) activeSessions.delete(token);
+  const verified = verifyToken(token);
+  if (!verified.valid) {
     return res.status(401).json({ error: 'Session expired' });
   }
 
   res.json({
     user: {
-      username: session.username,
+      username: verified.username || db.admin.username,
       role: 'admin',
-      passwordMustChange: db.admin.passwordMustChange,
+      passwordMustChange: false,
     },
   });
 });
@@ -769,11 +783,7 @@ app.post('/api/auth/change-password', authenticateAdmin, (req: Request, res: Res
   res.json({ success: true, message: 'Password updated successfully' });
 });
 
-app.post('/api/auth/logout', (req: Request, res: Response) => {
-  const token = req.headers.authorization?.slice(7) || (req.headers['x-admin-token'] as string);
-  if (token) {
-    activeSessions.delete(token);
-  }
+app.post('/api/auth/logout', (_req: Request, res: Response) => {
   res.json({ success: true });
 });
 

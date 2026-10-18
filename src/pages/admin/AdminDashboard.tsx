@@ -30,21 +30,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, n
       headers: { Authorization: `Bearer ${adminToken}` },
     })
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setOrders(data))
-      .catch(() => {});
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .catch(() => setOrders([]));
 
     fetch('/api/bookings', {
       headers: { Authorization: `Bearer ${adminToken}` },
     })
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setBookings(data))
-      .catch(() => {});
+      .then((data) => setBookings(Array.isArray(data) ? data : []))
+      .catch(() => setBookings([]));
   }, [adminToken]);
 
-  const publishedCount = products.filter((p) => p.isPublished).length;
-  const draftCount = products.filter((p) => !p.isPublished).length;
-  const pendingOrdersCount = orders.filter((o) => o.status === 'new').length;
-  const pendingBookingsCount = bookings.filter((b) => b.status === 'pending').length;
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+
+  const publishedCount = safeProducts.filter((p) => p && p.isPublished).length;
+  const draftCount = safeProducts.filter((p) => p && !p.isPublished).length;
+  const pendingOrdersCount = safeOrders.filter((o) => o && o.status === 'new').length;
+  const pendingBookingsCount = safeBookings.filter((b) => b && b.status === 'pending').length;
 
   return (
     <div className="space-y-8">
@@ -102,7 +107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, n
             <Layers className="w-4 h-4 text-[#B99A5B]" />
           </div>
           <p className="font-serif text-3xl font-bold text-[#171717] tabular-nums">
-            {categories.length}
+            {safeCategories.length}
           </p>
           <span className="text-[11px] text-[#71717A] mt-1 block">Active departments</span>
         </div>
@@ -113,7 +118,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, n
             <ShoppingBag className="w-4 h-4 text-emerald-600" />
           </div>
           <p className="font-serif text-3xl font-bold text-[#171717] tabular-nums">
-            {orders.length}
+            {safeOrders.length}
           </p>
           <span className="text-[11px] text-emerald-600 font-medium mt-1 block">
             {pendingOrdersCount} new
@@ -126,7 +131,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, n
             <Calendar className="w-4 h-4 text-[#B99A5B]" />
           </div>
           <p className="font-serif text-3xl font-bold text-[#171717] tabular-nums">
-            {bookings.length}
+            {safeBookings.length}
           </p>
           <span className="text-[11px] text-[#B99A5B] font-medium mt-1 block">
             {pendingBookingsCount} pending
@@ -216,15 +221,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, n
             </button>
           </div>
 
-          {orders.length > 0 ? (
+          {safeOrders.length > 0 ? (
             <div className="divide-y divide-[#E9E6E0] text-xs">
-              {orders.slice(0, 5).map((ord) => (
+              {safeOrders.slice(0, 5).map((ord) => (
                 <div key={ord.id} className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <p className="font-semibold text-[#171717]">{ord.productName}</p>
+                    <p className="font-semibold text-[#171717]">{ord.productName || 'Custom Request'}</p>
                     <p className="text-[#71717A]">
                       {ord.customerName ? `${ord.customerName} · ` : ''}
-                      {ord.selectedOptions && Object.values(ord.selectedOptions).join(', ')}
+                      {ord.selectedOptions && typeof ord.selectedOptions === 'object' && Object.values(ord.selectedOptions).join(', ')}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -240,7 +245,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, n
                       {ord.status}
                     </span>
                     <span className="text-[10px] text-[#71717A] block mt-0.5">
-                      {new Date(ord.createdAt).toLocaleDateString()}
+                      {ord.createdAt ? new Date(ord.createdAt).toLocaleDateString() : 'Recent'}
                     </span>
                   </div>
                 </div>
@@ -266,9 +271,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, n
             </button>
           </div>
 
-          {bookings.length > 0 ? (
+          {safeBookings.length > 0 ? (
             <div className="divide-y divide-[#E9E6E0] text-xs">
-              {bookings.slice(0, 5).map((b) => (
+              {safeBookings.slice(0, 5).map((b) => (
                 <div key={b.id} className="py-3 flex items-center justify-between gap-4">
                   <div>
                     <p className="font-semibold text-[#171717]">{b.fullName}</p>

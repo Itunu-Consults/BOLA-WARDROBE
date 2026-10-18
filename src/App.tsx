@@ -3,6 +3,7 @@ import { StoreProvider, useStore } from './context/StoreContext';
 import { AnnouncementBar } from './components/AnnouncementBar';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { MessageCircle } from 'lucide-react';
 
 // Public Pages
@@ -96,29 +97,27 @@ function AppContent() {
     else if (currentPath.includes('/admin/messages')) activeTab = 'messages';
     else if (currentPath.includes('/admin/media')) activeTab = 'media';
     else if (currentPath.includes('/admin/settings')) activeTab = 'settings';
-    else if (currentPath.includes('/admin/categories')) activeTab = 'categories';
-    else if (currentPath.includes('/admin/messages')) activeTab = 'messages';
-    else if (currentPath.includes('/admin/media')) activeTab = 'media';
-    else if (currentPath.includes('/admin/settings')) activeTab = 'settings';
 
     return (
-      <AdminLayout
-        currentTab={activeTab}
-        setCurrentTab={(tab) => {
-          const target = tab === 'dashboard' ? '/admin' : `/admin/${tab}`;
-          navigate(target);
-        }}
-        navigate={navigate}
-      >
-        {activeTab === 'dashboard' && <AdminDashboard setCurrentTab={(t) => navigate(t === 'dashboard' ? '/admin' : `/admin/${t}`)} navigate={navigate} />}
-        {activeTab === 'products' && <AdminProducts navigate={navigate} />}
-        {activeTab === 'orders' && <AdminOrders />}
-        {activeTab === 'bookings' && <AdminBookings />}
-        {activeTab === 'categories' && <AdminCategories />}
-        {activeTab === 'messages' && <AdminMessages />}
-        {activeTab === 'media' && <AdminMedia />}
-        {activeTab === 'settings' && <AdminSettings />}
-      </AdminLayout>
+      <ErrorBoundary fallbackTitle="Admin Portal Error">
+        <AdminLayout
+          currentTab={activeTab}
+          setCurrentTab={(tab) => {
+            const target = tab === 'dashboard' ? '/admin' : `/admin/${tab}`;
+            navigate(target);
+          }}
+          navigate={navigate}
+        >
+          {activeTab === 'dashboard' && <AdminDashboard setCurrentTab={(t) => navigate(t === 'dashboard' ? '/admin' : `/admin/${t}`)} navigate={navigate} />}
+          {activeTab === 'products' && <AdminProducts navigate={navigate} />}
+          {activeTab === 'orders' && <AdminOrders />}
+          {activeTab === 'bookings' && <AdminBookings />}
+          {activeTab === 'categories' && <AdminCategories />}
+          {activeTab === 'messages' && <AdminMessages />}
+          {activeTab === 'media' && <AdminMedia />}
+          {activeTab === 'settings' && <AdminSettings />}
+        </AdminLayout>
+      </ErrorBoundary>
     );
   }
 
