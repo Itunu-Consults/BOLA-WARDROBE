@@ -62,7 +62,7 @@
       "shortDescription": "",
       "description": "",
       "images": [
-        "/images/products/placeholder.svg"
+        "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=800&q=80"
       ],
       "variants": [
         {
@@ -86,7 +86,7 @@
       "isPublished": true,
       "isFeatured": false,
       "createdAt": "2026-10-18T09:22:28.741Z",
-      "updatedAt": "2026-10-18T09:22:28.741Z"
+      "updatedAt": "2026-10-18T09:36:02.727Z"
     },
     {
       "id": "prod-wears-1",

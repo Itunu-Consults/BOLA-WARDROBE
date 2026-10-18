@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ProductVisualProps {
   slug: string;
@@ -19,8 +19,17 @@ export const ProductVisual: React.FC<ProductVisualProps> = ({
 }) => {
   const [imageError, setImageError] = useState(false);
 
-  // If a valid custom image is provided and hasn't errored
-  const hasCustomImage = imageUrl && !imageError && !imageUrl.endsWith('.svg');
+  useEffect(() => {
+    setImageError(false);
+  }, [imageUrl]);
+
+  const cleanUrl = imageUrl?.trim();
+  const hasCustomImage = Boolean(
+    cleanUrl &&
+    !imageError &&
+    cleanUrl !== '/images/products/placeholder.svg' &&
+    cleanUrl !== ''
+  );
 
   const aspectClass =
     aspectRatio === '1/1'
@@ -38,11 +47,13 @@ export const ProductVisual: React.FC<ProductVisualProps> = ({
     >
       {hasCustomImage ? (
         <img
-          src={imageUrl}
+          src={cleanUrl}
           alt={name}
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-          referrerPolicy="no-referrer"
-          onError={() => setImageError(true)}
+          onError={() => {
+            console.warn(`[ProductVisual] Image error loading: ${cleanUrl}`);
+            setImageError(true);
+          }}
         />
       ) : (
         <EditorialSvgIllustration slug={slug} category={category} name={name} />

@@ -506,22 +506,22 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
                 />
               </div>
 
-              {/* Image Input & Upload */}
+              {/* Image Input, Upload & Live Preview */}
               <div>
                 <label className="block font-semibold text-[#171717] mb-1">
-                  Primary Product Image (URL or Upload File)
+                  Product Image * (Upload Photo or Paste Image Link)
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="Enter image URL or choose file..."
+                    placeholder="Paste image link (https://...) or choose file below..."
                     className="flex-1 px-3 py-2 bg-[#FAF8F5] border border-[#E9E6E0] rounded-xs focus:border-[#B99A5B] focus:outline-none"
                   />
-                  <label className="px-3 py-2 bg-white border border-[#E9E6E0] hover:border-[#B99A5B] rounded-xs cursor-pointer flex items-center gap-1.5 font-semibold text-[#171717]">
-                    <Upload className="w-3.5 h-3.5 text-[#B99A5B]" />
-                    <span>Upload</span>
+                  <label className="px-4 py-2 bg-[#171717] hover:bg-[#B99A5B] text-white rounded-xs cursor-pointer flex items-center gap-1.5 font-semibold transition-colors shrink-0">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload File</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -529,6 +529,70 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({ navigate }) => {
                       className="hidden"
                     />
                   </label>
+                </div>
+
+                {/* Live Preview Box */}
+                {imageUrl && (
+                  <div className="p-3 bg-[#FAF8F5] border border-[#E9E6E0] rounded-xs flex items-center gap-4 mb-2">
+                    <div className="w-16 h-16 rounded-xs overflow-hidden bg-white border border-[#E9E6E0] shrink-0">
+                      <img
+                        src={imageUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span className="font-semibold text-emerald-800 text-[11px]">Image Loaded & Ready</span>
+                      </div>
+                      <p className="text-[10px] text-[#71717A] truncate font-mono mt-0.5">
+                        {imageUrl.startsWith('data:') ? 'Compressed Web Image (Direct Data)' : imageUrl}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('')}
+                      className="px-2.5 py-1 text-[11px] text-red-600 hover:bg-red-50 rounded-xs border border-red-200 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+
+                {/* Boutique Presets Selection */}
+                <div className="p-2.5 bg-[#FAF8F5] border border-[#E9E6E0] rounded-xs flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <span className="text-[11px] text-[#71717A]">Quick Presets:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=800&q=80')}
+                      className="text-[10px] px-2 py-1 bg-white border border-[#E9E6E0] hover:border-[#B99A5B] rounded-xs text-[#171717] font-medium"
+                    >
+                      Silk Dress
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80')}
+                      className="text-[10px] px-2 py-1 bg-white border border-[#E9E6E0] hover:border-[#B99A5B] rounded-xs text-[#171717] font-medium"
+                    >
+                      Leather Bag
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=800&q=80')}
+                      className="text-[10px] px-2 py-1 bg-white border border-[#E9E6E0] hover:border-[#B99A5B] rounded-xs text-[#171717] font-medium"
+                    >
+                      Jewelry
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=800&q=80')}
+                      className="text-[10px] px-2 py-1 bg-white border border-[#E9E6E0] hover:border-[#B99A5B] rounded-xs text-[#171717] font-medium"
+                    >
+                      Cosmetics
+                    </button>
+                  </div>
                 </div>
               </div>
 
