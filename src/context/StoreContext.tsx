@@ -400,16 +400,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {}
 
     if (!saved) {
-      const id = categoryData.id || `cat-${Date.now()}`;
-      saved = {
-        id,
-        name: categoryData.name || 'New Category',
-        slug: categoryData.slug || (categoryData.name ? categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : id),
-        tagline: categoryData.tagline || '',
-        description: categoryData.description || '',
-        image: categoryData.image || '',
-        displayOrder: categoryData.displayOrder || categories.length + 1,
-      };
+      if (isEdit && categoryData.id) {
+        const existing = categories.find(c => c.id === categoryData.id);
+        if (existing) {
+          saved = { ...existing, ...categoryData } as Category;
+        }
+      }
+      if (!saved) {
+        const id = categoryData.id || `cat-${Date.now()}`;
+        saved = {
+          id,
+          name: categoryData.name || 'New Category',
+          slug: categoryData.slug || (categoryData.name ? categoryData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : id),
+          tagline: categoryData.tagline || '',
+          description: categoryData.description || '',
+          image: categoryData.image || '',
+          displayOrder: categoryData.displayOrder || categories.length + 1,
+        };
+      }
     }
 
     setCategories(prev => {

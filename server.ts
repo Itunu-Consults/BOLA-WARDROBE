@@ -43,12 +43,21 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
   }
 }
 
-// Ensure storage directories exist
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Ensure storage directories exist safely (prevent read-only filesystem crash on Vercel)
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch {
+  // Read-only filesystem
 }
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch {
+  // Read-only filesystem
 }
 
 // Initial Admin Password Hash
@@ -705,10 +714,14 @@ app.post('/api/media/upload', authenticateAdmin, (req: Request, res: Response) =
     const fileName = `${safeName}-${Date.now()}.${cleanExt}`;
     const filePath = path.join(UPLOADS_DIR, fileName);
 
-    fs.writeFileSync(filePath, Buffer.from(matches[2], 'base64'));
-    const url = `/uploads/${fileName}`;
-
-    res.json({ success: true, url, fileName });
+    try {
+      fs.writeFileSync(filePath, Buffer.from(matches[2], 'base64'));
+      const url = `/uploads/${fileName}`;
+      res.json({ success: true, url, fileName });
+    } catch {
+      // Serverless fallback: return the optimized dataUrl directly
+      res.json({ success: true, url: dataUrl, fileName });
+    }
   } catch (err: any) {
     console.error('Upload error:', err);
     res.status(500).json({ error: 'Failed to process media upload' });

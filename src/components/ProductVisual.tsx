@@ -69,18 +69,27 @@ export const CategoryVisual: React.FC<{
   className?: string;
 }> = ({ categorySlug, name, imageUrl, className = '' }) => {
   const [imgError, setImgError] = useState(false);
-  const resolvedUrl = imageUrl || `/images/categories/category-${categorySlug}.jpg`;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
+
+  const cleanUrl = imageUrl?.trim();
+  const resolvedUrl = cleanUrl && cleanUrl !== '' ? cleanUrl : `/images/categories/category-${categorySlug}.jpg`;
 
   return (
     <div
       className={`relative overflow-hidden bg-[#F8F6F2] flex items-center justify-center select-none ${className}`}
     >
-      {!imgError ? (
+      {!imgError && resolvedUrl ? (
         <img
           src={resolvedUrl}
           alt={name}
           className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-          onError={() => setImgError(true)}
+          onError={() => {
+            console.warn(`[CategoryVisual] Failed to load image: ${resolvedUrl}`);
+            setImgError(true);
+          }}
         />
       ) : (
         <EditorialCategoryIllustration slug={categorySlug} name={name} />
