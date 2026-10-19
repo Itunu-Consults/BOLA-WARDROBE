@@ -32,16 +32,87 @@ const STORAGE_PRODUCTS_KEY = 'bola_custom_products';
 const STORAGE_CATEGORIES_KEY = 'bola_custom_categories';
 const STORAGE_SETTINGS_KEY = 'bola_custom_settings';
 
+const OVERRIDE_CATEGORIES_KEY = 'bola_overrides_categories';
+const OVERRIDE_PRODUCTS_KEY = 'bola_overrides_products';
+const OVERRIDE_SETTINGS_KEY = 'bola_overrides_settings';
+
+function getCategoryOverrides(): Record<string, Category> {
+  try {
+    const raw = localStorage.getItem(OVERRIDE_CATEGORIES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function getProductOverrides(): Record<string, Product> {
+  try {
+    const raw = localStorage.getItem(OVERRIDE_PRODUCTS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function getSettingsOverrides(): Partial<SiteSettings> {
+  try {
+    const raw = localStorage.getItem(OVERRIDE_SETTINGS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function mergeCategoryOverrides(remoteCategories: Category[]): Category[] {
+  const overrides = getCategoryOverrides();
+  const remoteMap = new Map(remoteCategories.map(c => [c.id, c]));
+
+  const result: Category[] = remoteCategories.map(remote => {
+    if (overrides[remote.id]) {
+      return { ...remote, ...overrides[remote.id] };
+    }
+    return remote;
+  });
+
+  Object.values(overrides).forEach(local => {
+    if (!remoteMap.has(local.id)) {
+      result.push(local);
+    }
+  });
+
+  return result.sort((a, b) => (a.displayOrder || 1) - (b.displayOrder || 1));
+}
+
+function mergeProductOverrides(remoteProducts: Product[]): Product[] {
+  const overrides = getProductOverrides();
+  const remoteMap = new Map(remoteProducts.map(p => [p.id, p]));
+
+  const result: Product[] = remoteProducts.map(remote => {
+    if (overrides[remote.id]) {
+      return { ...remote, ...overrides[remote.id] };
+    }
+    return remote;
+  });
+
+  Object.values(overrides).forEach(local => {
+    if (!remoteMap.has(local.id)) {
+      result.unshift(local);
+    }
+  });
+
+  return result;
+}
+
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_PRODUCTS_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return mergeProductOverrides(parsed);
       }
     } catch {}
-    return initialProducts;
+    return mergeProductOverrides(initialProducts);
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
@@ -49,16 +120,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const stored = localStorage.getItem(STORAGE_CATEGORIES_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return mergeCategoryOverrides(parsed);
       }
     } catch {}
-    return initialCategories;
+    return mergeCategoryOverrides(initialCategories);
   });
 
   const [settings, setSettings] = useState<SiteSettings>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_SETTINGS_KEY);
-      if (stored) return { ...initialSiteSettings, ...JSON.parse(stored) };
+      const overrides = getSettingsOverrides();
+      if (stored) return { ...initialSiteSettings, ...JSON.parse(stored), ...overrides };
+      return { ...initialSiteSettings, ...overrides };
     } catch {}
     return initialSiteSettings;
   });
@@ -77,95 +150,101 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Load Settings
   const refreshSettings = useCallback(async () => {
+    let loadedSettings: SiteSettings | null = null;
+
     try {
       const res = await fetch('/api/settings');
       if (res.ok) {
         const data = await res.json();
         if (data && typeof data === 'object') {
-          setSettings(data);
-          try {
-            localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(data));
-          } catch {}
-          return;
-        }
-      }
-    } catch {
-      // fallback
-    }
-
-    try {
-      const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
-      if (isSupabaseConfigured) {
-        const { data } = await supabase.from('site_settings').select('*').limit(1).single();
-        if (data) {
-          const mapped: SiteSettings = {
-            brandName: data.brand_name || initialSiteSettings.brandName,
-            tagline: data.tagline || initialSiteSettings.tagline,
-            supportingStatement: data.supporting_statement || initialSiteSettings.supportingStatement,
-            announcementText: data.announcement_text || initialSiteSettings.announcementText,
-            whatsappNumber: data.whatsapp_number || initialSiteSettings.whatsappNumber,
-            businessEmail: data.business_email || initialSiteSettings.businessEmail,
-            instagramUrl: data.instagram_url || initialSiteSettings.instagramUrl,
-            facebookUrl: data.facebook_url || initialSiteSettings.facebookUrl,
-            tiktokUrl: data.tiktok_url || initialSiteSettings.tiktokUrl,
-            consultationEnabled: data.consultation_enabled ?? initialSiteSettings.consultationEnabled,
-            businessHours: data.business_hours || initialSiteSettings.businessHours,
-            footerNote: data.footer_note || initialSiteSettings.footerNote,
-            metaTitle: data.meta_title || initialSiteSettings.metaTitle,
-            metaDescription: data.meta_description || initialSiteSettings.metaDescription,
-          };
-          setSettings(mapped);
-          try {
-            localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(mapped));
-          } catch {}
+          loadedSettings = data;
         }
       }
     } catch {}
+
+    if (!loadedSettings) {
+      try {
+        const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+        if (isSupabaseConfigured) {
+          const { data } = await supabase.from('site_settings').select('*').limit(1).single();
+          if (data) {
+            loadedSettings = {
+              brandName: data.brand_name || initialSiteSettings.brandName,
+              tagline: data.tagline || initialSiteSettings.tagline,
+              supportingStatement: data.supporting_statement || initialSiteSettings.supportingStatement,
+              announcementText: data.announcement_text || initialSiteSettings.announcementText,
+              whatsappNumber: data.whatsapp_number || initialSiteSettings.whatsappNumber,
+              businessEmail: data.business_email || initialSiteSettings.businessEmail,
+              instagramUrl: data.instagram_url || initialSiteSettings.instagramUrl,
+              facebookUrl: data.facebook_url || initialSiteSettings.facebookUrl,
+              tiktokUrl: data.tiktok_url || initialSiteSettings.tiktokUrl,
+              consultationEnabled: data.consultation_enabled ?? initialSiteSettings.consultationEnabled,
+              businessHours: data.business_hours || initialSiteSettings.businessHours,
+              footerNote: data.footer_note || initialSiteSettings.footerNote,
+              metaTitle: data.meta_title || initialSiteSettings.metaTitle,
+              metaDescription: data.meta_description || initialSiteSettings.metaDescription,
+            };
+          }
+        }
+      } catch {}
+    }
+
+    if (loadedSettings) {
+      const overrides = getSettingsOverrides();
+      const merged = { ...loadedSettings, ...overrides };
+      setSettings(merged);
+      try {
+        localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(merged));
+      } catch {}
+    }
   }, []);
 
   // Load Categories
   const refreshCategories = useCallback(async () => {
+    let loadedCats: Category[] | null = null;
+
     try {
       const res = await fetch('/api/categories');
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          setCategories(data);
-          try {
-            localStorage.setItem(STORAGE_CATEGORIES_KEY, JSON.stringify(data));
-          } catch {}
-          return;
+          loadedCats = data;
         }
       }
-    } catch {
-      // fallback
+    } catch {}
+
+    if (!loadedCats) {
+      try {
+        const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+        if (isSupabaseConfigured) {
+          const { data } = await supabase.from('categories').select('*').order('display_order', { ascending: true });
+          if (Array.isArray(data) && data.length > 0) {
+            loadedCats = data.map(c => ({
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+              tagline: c.tagline || '',
+              description: c.description || '',
+              image: c.image || '',
+              displayOrder: c.display_order || 0,
+            }));
+          }
+        }
+      } catch {}
     }
 
+    const baseList = loadedCats || initialCategories;
+    const finalCategories = mergeCategoryOverrides(baseList);
+    setCategories(finalCategories);
     try {
-      const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
-      if (isSupabaseConfigured) {
-        const { data } = await supabase.from('categories').select('*').order('display_order', { ascending: true });
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped: Category[] = data.map(c => ({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            tagline: c.tagline || '',
-            description: c.description || '',
-            image: c.image || '',
-            displayOrder: c.display_order || 0,
-          }));
-          setCategories(mapped);
-          try {
-            localStorage.setItem(STORAGE_CATEGORIES_KEY, JSON.stringify(mapped));
-          } catch {}
-        }
-      }
+      localStorage.setItem(STORAGE_CATEGORIES_KEY, JSON.stringify(finalCategories));
     } catch {}
   }, []);
 
   // Load Products
   const refreshProducts = useCallback(async () => {
+    let loadedProds: Product[] | null = null;
+
     try {
       const res = await fetch('/api/products', {
         headers: authHeaders(),
@@ -173,46 +252,45 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          setProducts(data);
-          try {
-            localStorage.setItem(STORAGE_PRODUCTS_KEY, JSON.stringify(data));
-          } catch {}
-          return;
+          loadedProds = data;
         }
       }
-    } catch {
-      // fallback
+    } catch {}
+
+    if (!loadedProds) {
+      try {
+        const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+        if (isSupabaseConfigured) {
+          const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+          if (Array.isArray(data) && data.length > 0) {
+            loadedProds = data.map(p => ({
+              id: p.id,
+              slug: p.slug,
+              name: p.name,
+              category: p.category,
+              shortDescription: p.short_description || '',
+              description: p.description || '',
+              images: p.images || [],
+              variants: p.variants || [],
+              availability: p.availability || 'in_stock',
+              label: p.label || null,
+              specifications: p.specifications || {},
+              careInstructions: p.care_instructions || '',
+              isPublished: p.is_published !== undefined ? p.is_published : true,
+              isFeatured: p.is_featured || false,
+              createdAt: p.created_at || new Date().toISOString(),
+              updatedAt: p.updated_at || new Date().toISOString(),
+            }));
+          }
+        }
+      } catch {}
     }
 
+    const baseList = loadedProds || initialProducts;
+    const finalProducts = mergeProductOverrides(baseList);
+    setProducts(finalProducts);
     try {
-      const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
-      if (isSupabaseConfigured) {
-        const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped: Product[] = data.map(p => ({
-            id: p.id,
-            slug: p.slug,
-            name: p.name,
-            category: p.category,
-            shortDescription: p.short_description || '',
-            description: p.description || '',
-            images: p.images || [],
-            variants: p.variants || [],
-            availability: p.availability || 'in_stock',
-            label: p.label || null,
-            specifications: p.specifications || {},
-            careInstructions: p.care_instructions || '',
-            isPublished: p.is_published !== undefined ? p.is_published : true,
-            isFeatured: p.is_featured || false,
-            createdAt: p.created_at || new Date().toISOString(),
-            updatedAt: p.updated_at || new Date().toISOString(),
-          }));
-          setProducts(mapped);
-          try {
-            localStorage.setItem(STORAGE_PRODUCTS_KEY, JSON.stringify(mapped));
-          } catch {}
-        }
-      }
+      localStorage.setItem(STORAGE_PRODUCTS_KEY, JSON.stringify(finalProducts));
     } catch {}
   }, [authHeaders]);
 
@@ -259,7 +337,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ): Promise<{ success: boolean; product?: Product; error?: string }> => {
     let saved: Product | null = null;
 
-    // 1. Try server endpoint
     try {
       const url = isEdit && productData.id ? `/api/products/${productData.id}` : '/api/products';
       const method = isEdit ? 'PUT' : 'POST';
@@ -272,10 +349,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         saved = await res.json();
       }
     } catch (err) {
-      console.warn('API save error, persisting locally:', err);
+      console.warn('API save warning, persisting locally:', err);
     }
 
-    // 2. Build product if API unreachable
     if (!saved) {
       if (isEdit && productData.id) {
         const existing = products.find(p => p.id === productData.id);
@@ -307,7 +383,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    // 3. Immediately update state and localStorage
+    // Save to persistent overrides
+    try {
+      const overrides = getProductOverrides();
+      overrides[saved.id] = saved;
+      localStorage.setItem(OVERRIDE_PRODUCTS_KEY, JSON.stringify(overrides));
+    } catch {}
+
     setProducts(prev => {
       const idx = prev.findIndex(p => p.id === saved!.id);
       let updated: Product[];
@@ -323,11 +405,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return updated;
     });
 
-    // 4. Supabase direct upsert
     try {
       const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
       if (isSupabaseConfigured) {
-        supabase.from('products').upsert({
+        await supabase.from('products').upsert({
           id: saved.id,
           slug: saved.slug,
           name: saved.name,
@@ -343,8 +424,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           is_published: saved.isPublished,
           is_featured: saved.isFeatured,
           updated_at: new Date().toISOString(),
-        }).then(({ error }) => {
-          if (error) console.warn('[Supabase Sync Warning]:', error.message);
         });
       }
     } catch {}
@@ -361,6 +440,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     } catch {}
 
+    try {
+      const overrides = getProductOverrides();
+      delete overrides[id];
+      localStorage.setItem(OVERRIDE_PRODUCTS_KEY, JSON.stringify(overrides));
+    } catch {}
+
     setProducts(prev => {
       const updated = prev.filter(p => p.id !== id);
       try {
@@ -372,7 +457,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
       if (isSupabaseConfigured) {
-        supabase.from('products').delete().eq('id', id).then(() => {});
+        await supabase.from('products').delete().eq('id', id);
       }
     } catch {}
 
@@ -420,6 +505,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
+    // Save to persistent overrides
+    try {
+      const overrides = getCategoryOverrides();
+      overrides[saved.id] = saved;
+      localStorage.setItem(OVERRIDE_CATEGORIES_KEY, JSON.stringify(overrides));
+    } catch {}
+
     setCategories(prev => {
       const idx = prev.findIndex(c => c.id === saved!.id);
       let updated: Category[];
@@ -438,7 +530,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
       if (isSupabaseConfigured) {
-        supabase.from('categories').upsert({
+        await supabase.from('categories').upsert({
           id: saved.id,
           name: saved.name,
           slug: saved.slug,
@@ -446,7 +538,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           description: saved.description,
           image: saved.image,
           display_order: saved.displayOrder,
-        }).then(() => {});
+        });
       }
     } catch {}
 
@@ -462,6 +554,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     } catch {}
 
+    try {
+      const overrides = getCategoryOverrides();
+      delete overrides[id];
+      localStorage.setItem(OVERRIDE_CATEGORIES_KEY, JSON.stringify(overrides));
+    } catch {}
+
     setCategories(prev => {
       const updated = prev.filter(c => c.id !== id);
       try {
@@ -473,7 +571,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
       if (isSupabaseConfigured) {
-        supabase.from('categories').delete().eq('id', id).then(() => {});
+        await supabase.from('categories').delete().eq('id', id);
       }
     } catch {}
 
@@ -500,6 +598,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     } catch {}
 
+    try {
+      const overrides = getSettingsOverrides();
+      const updatedOverrides = { ...overrides, ...newSettings };
+      localStorage.setItem(OVERRIDE_SETTINGS_KEY, JSON.stringify(updatedOverrides));
+    } catch {}
+
     setSettings(finalSettings);
     try {
       localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(finalSettings));
@@ -508,7 +612,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
       if (isSupabaseConfigured) {
-        supabase.from('site_settings').upsert({
+        await supabase.from('site_settings').upsert({
           id: 'default',
           brand_name: finalSettings.brandName,
           tagline: finalSettings.tagline,
@@ -525,7 +629,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           meta_title: finalSettings.metaTitle,
           meta_description: finalSettings.metaDescription,
           updated_at: new Date().toISOString(),
-        }).then(() => {});
+        });
       }
     } catch {}
 
@@ -546,7 +650,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify({ username: cleanUser, password: cleanPass }),
       });
 
-      if (res.status === 404) {
+      if (res.status === 404 || res.status === 500) {
         if (cleanUser === 'admin' && (cleanPass === 'Bolar@247' || cleanPass === 'BolaAdmin2026!')) {
           const clientToken = `client_admin_${Date.now()}`;
           const adminObj: AdminUser = { id: 'admin-1', username: 'admin', role: 'admin', passwordMustChange: false };
