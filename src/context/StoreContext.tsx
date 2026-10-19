@@ -23,6 +23,8 @@ interface StoreContextType {
   submitBooking: (booking: Partial<Booking>) => Promise<{ success: boolean; booking?: Booking; error?: string }>;
   submitOrderRequest: (order: Partial<OrderRequest>) => Promise<{ success: boolean; order?: OrderRequest; error?: string }>;
   submitContactMessage: (msg: Partial<ContactMessage>) => Promise<{ success: boolean; error?: string }>;
+  syncAllToCloud: () => Promise<{ success: boolean; message: string; rlsBlocked?: boolean }>;
+  saveSupabaseServiceRoleKey: (key: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -152,38 +154,40 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const refreshSettings = useCallback(async () => {
     let loadedSettings: SiteSettings | null = null;
 
+    // 1. Direct Supabase load (Fastest & multi-device consistent)
     try {
-      const res = await fetch('/api/settings');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && typeof data === 'object') {
-          loadedSettings = data;
+      const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase.from('site_settings').select('*').limit(1).maybeSingle();
+        if (data && !error) {
+          loadedSettings = {
+            brandName: data.brand_name || initialSiteSettings.brandName,
+            tagline: data.tagline || initialSiteSettings.tagline,
+            supportingStatement: data.supporting_statement || initialSiteSettings.supportingStatement,
+            announcementText: data.announcement_text || initialSiteSettings.announcementText,
+            whatsappNumber: data.whatsapp_number || initialSiteSettings.whatsappNumber,
+            businessEmail: data.business_email || initialSiteSettings.businessEmail,
+            instagramUrl: data.instagram_url || initialSiteSettings.instagramUrl,
+            facebookUrl: data.facebook_url || initialSiteSettings.facebookUrl,
+            tiktokUrl: data.tiktok_url || initialSiteSettings.tiktokUrl,
+            consultationEnabled: data.consultation_enabled ?? initialSiteSettings.consultationEnabled,
+            businessHours: data.business_hours || initialSiteSettings.businessHours,
+            footerNote: data.footer_note || initialSiteSettings.footerNote,
+            metaTitle: data.meta_title || initialSiteSettings.metaTitle,
+            metaDescription: data.meta_description || initialSiteSettings.metaDescription,
+          };
         }
       }
     } catch {}
 
+    // 2. Server API fallback
     if (!loadedSettings) {
       try {
-        const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
-        if (isSupabaseConfigured) {
-          const { data } = await supabase.from('site_settings').select('*').limit(1).single();
-          if (data) {
-            loadedSettings = {
-              brandName: data.brand_name || initialSiteSettings.brandName,
-              tagline: data.tagline || initialSiteSettings.tagline,
-              supportingStatement: data.supporting_statement || initialSiteSettings.supportingStatement,
-              announcementText: data.announcement_text || initialSiteSettings.announcementText,
-              whatsappNumber: data.whatsapp_number || initialSiteSettings.whatsappNumber,
-              businessEmail: data.business_email || initialSiteSettings.businessEmail,
-              instagramUrl: data.instagram_url || initialSiteSettings.instagramUrl,
-              facebookUrl: data.facebook_url || initialSiteSettings.facebookUrl,
-              tiktokUrl: data.tiktok_url || initialSiteSettings.tiktokUrl,
-              consultationEnabled: data.consultation_enabled ?? initialSiteSettings.consultationEnabled,
-              businessHours: data.business_hours || initialSiteSettings.businessHours,
-              footerNote: data.footer_note || initialSiteSettings.footerNote,
-              metaTitle: data.meta_title || initialSiteSettings.metaTitle,
-              metaDescription: data.meta_description || initialSiteSettings.metaDescription,
-            };
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data === 'object') {
+            loadedSettings = data;
           }
         }
       } catch {}
@@ -203,31 +207,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const refreshCategories = useCallback(async () => {
     let loadedCats: Category[] | null = null;
 
+    // 1. Direct Supabase load (Immediate multi-device consistency)
     try {
-      const res = await fetch('/api/categories');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          loadedCats = data;
+      const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase.from('categories').select('*').order('display_order', { ascending: true });
+        if (Array.isArray(data) && data.length > 0 && !error) {
+          loadedCats = data.map(c => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            tagline: c.tagline || '',
+            description: c.description || '',
+            image: c.image || `/images/categories/category-${c.slug}.jpg`,
+            displayOrder: c.display_order || 0,
+          }));
         }
       }
     } catch {}
 
+    // 2. Server API fallback
     if (!loadedCats) {
       try {
-        const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
-        if (isSupabaseConfigured) {
-          const { data } = await supabase.from('categories').select('*').order('display_order', { ascending: true });
+        const res = await fetch('/api/categories');
+        if (res.ok) {
+          const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
-            loadedCats = data.map(c => ({
-              id: c.id,
-              name: c.name,
-              slug: c.slug,
-              tagline: c.tagline || '',
-              description: c.description || '',
-              image: c.image || '',
-              displayOrder: c.display_order || 0,
-            }));
+            loadedCats = data;
           }
         }
       } catch {}
@@ -245,42 +251,44 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const refreshProducts = useCallback(async () => {
     let loadedProds: Product[] | null = null;
 
+    // 1. Direct Supabase load (Immediate multi-device consistency)
     try {
-      const res = await fetch('/api/products', {
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          loadedProds = data;
+      const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+        if (Array.isArray(data) && data.length > 0 && !error) {
+          loadedProds = data.map(p => ({
+            id: p.id,
+            slug: p.slug,
+            name: p.name,
+            category: p.category,
+            shortDescription: p.short_description || '',
+            description: p.description || '',
+            images: p.images || [],
+            variants: p.variants || [],
+            availability: p.availability || 'in_stock',
+            label: p.label || null,
+            specifications: p.specifications || {},
+            careInstructions: p.care_instructions || '',
+            isPublished: p.is_published !== undefined ? p.is_published : true,
+            isFeatured: p.is_featured || false,
+            createdAt: p.created_at || new Date().toISOString(),
+            updatedAt: p.updated_at || new Date().toISOString(),
+          }));
         }
       }
     } catch {}
 
+    // 2. Server API fallback
     if (!loadedProds) {
       try {
-        const { supabase, isSupabaseConfigured } = await import('../lib/supabase');
-        if (isSupabaseConfigured) {
-          const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+        const res = await fetch('/api/products', {
+          headers: authHeaders(),
+        });
+        if (res.ok) {
+          const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
-            loadedProds = data.map(p => ({
-              id: p.id,
-              slug: p.slug,
-              name: p.name,
-              category: p.category,
-              shortDescription: p.short_description || '',
-              description: p.description || '',
-              images: p.images || [],
-              variants: p.variants || [],
-              availability: p.availability || 'in_stock',
-              label: p.label || null,
-              specifications: p.specifications || {},
-              careInstructions: p.care_instructions || '',
-              isPublished: p.is_published !== undefined ? p.is_published : true,
-              isFeatured: p.is_featured || false,
-              createdAt: p.created_at || new Date().toISOString(),
-              updatedAt: p.updated_at || new Date().toISOString(),
-            }));
+            loadedProds = data;
           }
         }
       } catch {}
@@ -418,7 +426,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           images: saved.images,
           variants: saved.variants,
           availability: saved.availability,
-          label: saved.label,
+          label: (saved.label === 'New Arrival' || saved.label === 'Bestseller') ? saved.label : null,
           specifications: saved.specifications,
           care_instructions: saved.careInstructions,
           is_published: saved.isPublished,
@@ -536,7 +544,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           slug: saved.slug,
           tagline: saved.tagline,
           description: saved.description,
-          image: saved.image,
+          image: saved.image && saved.image.trim() !== '' ? saved.image.trim() : `/images/categories/category-${saved.slug || 'wears'}.jpg`,
           display_order: saved.displayOrder,
         });
       }
@@ -818,6 +826,136 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return { success: true };
   };
 
+  const syncAllToCloud = async (): Promise<{ success: boolean; message: string; rlsBlocked?: boolean }> => {
+    try {
+      // 1. Try server sync-bulk endpoint first
+      try {
+        const res = await fetch('/api/supabase/sync-bulk', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ categories, products, settings }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            return {
+              success: true,
+              message: `Successfully synced ${data.categoriesSynced} categories and ${data.productsSynced} products to the cloud database! Your phone and all devices will now display the updated content.`,
+            };
+          }
+        }
+      } catch {}
+
+      // 2. Direct client-side Supabase sync
+      const { createSupabaseInstance, isSupabaseConfigured } = await import('../lib/supabase');
+      if (!isSupabaseConfigured) {
+        return { success: false, message: 'Supabase URL or key is not configured.' };
+      }
+
+      const client = createSupabaseInstance();
+      let errorMsg: string | null = null;
+      let rls = false;
+
+      // Sync settings
+      const { error: sErr } = await client.from('site_settings').upsert({
+        id: 'default',
+        brand_name: settings.brandName,
+        tagline: settings.tagline,
+        supporting_statement: settings.supportingStatement,
+        announcement_text: settings.announcementText,
+        whatsapp_number: settings.whatsappNumber,
+        business_email: settings.businessEmail,
+        instagram_url: settings.instagramUrl,
+        facebook_url: settings.facebookUrl,
+        tiktok_url: settings.tiktokUrl,
+        consultation_enabled: settings.consultationEnabled,
+        business_hours: settings.businessHours,
+        footer_note: settings.footerNote,
+        meta_title: settings.metaTitle,
+        meta_description: settings.metaDescription,
+        updated_at: new Date().toISOString(),
+      });
+      if (sErr) {
+        errorMsg = sErr.message;
+        if (sErr.code === '42501' || sErr.message?.toLowerCase().includes('row-level security')) rls = true;
+      }
+
+      // Sync categories
+      let catCount = 0;
+      for (const c of categories) {
+        const { error: cErr } = await client.from('categories').upsert({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          tagline: c.tagline || '',
+          description: c.description || '',
+          image: c.image && c.image.trim() !== '' ? c.image.trim() : `/images/categories/category-${c.slug || 'wears'}.jpg`,
+          display_order: c.displayOrder || 1,
+        });
+        if (cErr) {
+          errorMsg = cErr.message;
+          if (cErr.code === '42501' || cErr.message?.toLowerCase().includes('row-level security')) rls = true;
+        } else {
+          catCount++;
+        }
+      }
+
+      // Sync products
+      let prodCount = 0;
+      for (const p of products) {
+        const cleanLabel = (p.label === 'New Arrival' || p.label === 'Bestseller') ? p.label : null;
+        const { error: pErr } = await client.from('products').upsert({
+          id: p.id,
+          slug: p.slug,
+          name: p.name,
+          category: p.category,
+          short_description: p.shortDescription || '',
+          description: p.description || '',
+          images: p.images || [],
+          variants: p.variants || [],
+          availability: p.availability || 'in_stock',
+          label: cleanLabel,
+          specifications: p.specifications || {},
+          care_instructions: p.careInstructions || '',
+          is_published: p.isPublished,
+          is_featured: p.isFeatured,
+          updated_at: new Date().toISOString(),
+        });
+        if (pErr) {
+          errorMsg = pErr.message;
+          if (pErr.code === '42501' || pErr.message?.toLowerCase().includes('row-level security')) rls = true;
+        } else {
+          prodCount++;
+        }
+      }
+
+      if (rls) {
+        return {
+          success: false,
+          rlsBlocked: true,
+          message: errorMsg || 'Row-Level Security (RLS) is blocking writes in Supabase. Run the SQL script in your Supabase dashboard or enter your Service Role Key.',
+        };
+      }
+
+      return {
+        success: true,
+        message: `Synced ${catCount} categories and ${prodCount} products to the cloud database! Refresh your phone now to see all changes.`,
+      };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Sync failed.' };
+    }
+  };
+
+  const saveSupabaseServiceRoleKey = (key: string) => {
+    if (typeof window !== 'undefined') {
+      if (!key || key.trim() === '') {
+        localStorage.removeItem('bola_supabase_service_role_key');
+      } else {
+        localStorage.setItem('bola_supabase_service_role_key', key.trim());
+      }
+    }
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -841,6 +979,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         submitBooking,
         submitOrderRequest,
         submitContactMessage,
+        syncAllToCloud,
+        saveSupabaseServiceRoleKey,
       }}
     >
       {children}

@@ -80,7 +80,7 @@ export const AdminCategories: React.FC = () => {
       slug: slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       tagline: tagline.trim(),
       description: description.trim(),
-      image: image.trim(),
+      image: image.trim() || editingCategory?.image || `/images/categories/category-${(slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}.jpg`,
     };
 
     try {

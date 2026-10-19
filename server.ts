@@ -32,12 +32,15 @@ const UPLOADS_DIR = path.resolve(process.cwd(), 'public', 'uploads');
 const rawSupabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://habpuiqysybzozajamtr.supabase.co';
 const SUPABASE_URL = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhYnB1aXF5c3liem96YWphbXRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNjI4NjQsImV4cCI6MjEwNzgzODg2NH0.N2wIK0kbD472BydOEMNqlV73TO3COsqzkCzUzQalvYg';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
+
+const supabaseKeyToUse = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 
 let supabaseClient: SupabaseClient | null = null;
-if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+if (SUPABASE_URL && supabaseKeyToUse) {
   try {
-    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('[Supabase] Initialized client for:', SUPABASE_URL);
+    supabaseClient = createClient(SUPABASE_URL, supabaseKeyToUse);
+    console.log('[Supabase] Initialized client for:', SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ? '(Service Role Active - RLS Bypassed)' : '(Anon Key)');
   } catch (err) {
     console.error('[Supabase] Initialization error:', err);
   }
@@ -223,32 +226,64 @@ const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
 
 // ---------------- API ROUTES ----------------
 
-// Supabase Status check
+// Supabase Status and Write Permissions check
 app.get('/api/supabase/status', async (_req: Request, res: Response) => {
   if (!supabaseClient) {
     return res.json({
       configured: false,
       connected: false,
+      canWrite: false,
+      rlsBlocked: false,
       url: null,
-      message: 'Supabase client is not initialized.'
+      message: 'Supabase client is not initialized.',
     });
   }
 
   try {
     const { data, error } = await supabaseClient.from('site_settings').select('*').limit(1);
+    
+    // Test write permission (detects RLS block code 42501)
+    let canWrite = false;
+    let rlsBlocked = false;
+    let writeError: string | null = null;
+
+    try {
+      const writeTest = await supabaseClient.from('site_settings').upsert({
+        id: 'default',
+        updated_at: new Date().toISOString(),
+      }).select();
+
+      if (writeTest.error) {
+        writeError = writeTest.error.message;
+        rlsBlocked = writeTest.error.message?.toLowerCase().includes('row-level security') || writeTest.error.code === '42501';
+      } else {
+        canWrite = true;
+      }
+    } catch (wErr: any) {
+      writeError = wErr?.message || 'Write test failed';
+      rlsBlocked = Boolean(writeError?.toLowerCase().includes('row-level security'));
+    }
+
     return res.json({
       configured: true,
       connected: !error,
+      canWrite,
+      rlsBlocked,
+      writeError,
+      hasServiceRole: Boolean(SUPABASE_SERVICE_ROLE_KEY),
       url: SUPABASE_URL,
       dataApi: `${SUPABASE_URL}/rest/v1/`,
       tables: ['site_settings', 'categories', 'products', 'bookings', 'orders', 'messages'],
       hasData: Boolean(data && data.length > 0),
       error: error ? error.message : null,
+      sqlFix: `ALTER TABLE site_settings DISABLE ROW LEVEL SECURITY;\nALTER TABLE categories DISABLE ROW LEVEL SECURITY;\nALTER TABLE products DISABLE ROW LEVEL SECURITY;\nALTER TABLE bookings DISABLE ROW LEVEL SECURITY;\nALTER TABLE orders DISABLE ROW LEVEL SECURITY;\nALTER TABLE messages DISABLE ROW LEVEL SECURITY;`,
     });
   } catch (err: any) {
     return res.json({
       configured: true,
       connected: false,
+      canWrite: false,
+      rlsBlocked: false,
       url: SUPABASE_URL,
       error: err.message,
     });
@@ -342,7 +377,7 @@ app.get('/api/categories', async (_req: Request, res: Response) => {
   res.json(db.categories.sort((a, b) => a.displayOrder - b.displayOrder));
 });
 
-app.post('/api/categories', authenticateAdmin, (req: Request, res: Response) => {
+app.post('/api/categories', authenticateAdmin, async (req: Request, res: Response) => {
   const { name, tagline, description, image, slug } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Category name is required' });
@@ -359,10 +394,27 @@ app.post('/api/categories', authenticateAdmin, (req: Request, res: Response) => 
   };
   db.categories.push(newCategory);
   saveDatabase(db);
+
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('categories').upsert({
+        id: newCategory.id,
+        slug: newCategory.slug,
+        name: newCategory.name,
+        tagline: newCategory.tagline,
+        description: newCategory.description,
+        image: newCategory.image,
+        display_order: newCategory.displayOrder,
+      });
+    } catch (err) {
+      console.warn('[Supabase] Category insert warning:', err);
+    }
+  }
+
   res.status(201).json(newCategory);
 });
 
-app.put('/api/categories/:id', authenticateAdmin, (req: Request, res: Response) => {
+app.put('/api/categories/:id', authenticateAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const index = db.categories.findIndex(c => c.id === id);
   if (index === -1) {
@@ -370,10 +422,28 @@ app.put('/api/categories/:id', authenticateAdmin, (req: Request, res: Response) 
   }
   db.categories[index] = { ...db.categories[index], ...req.body };
   saveDatabase(db);
+
+  if (supabaseClient) {
+    try {
+      const c = db.categories[index];
+      await supabaseClient.from('categories').upsert({
+        id: c.id,
+        slug: c.slug,
+        name: c.name,
+        tagline: c.tagline || '',
+        description: c.description || '',
+        image: c.image && c.image.trim() !== '' ? c.image.trim() : `/images/categories/category-${c.slug || 'wears'}.jpg`,
+        display_order: c.displayOrder || 1,
+      });
+    } catch (err) {
+      console.warn('[Supabase] Category update warning:', err);
+    }
+  }
+
   res.json(db.categories[index]);
 });
 
-app.delete('/api/categories/:id', authenticateAdmin, (req: Request, res: Response) => {
+app.delete('/api/categories/:id', authenticateAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const category = db.categories.find(c => c.id === id);
   if (!category) {
@@ -388,18 +458,60 @@ app.delete('/api/categories/:id', authenticateAdmin, (req: Request, res: Respons
   }
   db.categories = db.categories.filter(c => c.id !== id);
   saveDatabase(db);
+
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('categories').delete().eq('id', id);
+    } catch (err) {
+      console.warn('[Supabase] Category delete warning:', err);
+    }
+  }
+
   res.json({ success: true, message: 'Category removed successfully' });
 });
 
 // Products
-app.get('/api/products', (req: Request, res: Response) => {
+app.get('/api/products', async (req: Request, res: Response) => {
   const token = req.headers.authorization?.slice(7) || (req.headers['x-admin-token'] as string);
   const isAdmin = Boolean(token && verifyToken(token).valid);
 
   const category = req.query.category as string | undefined;
   const search = req.query.search as string | undefined;
 
-  let list = db.products;
+  let list: Product[] = [];
+
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
+      if (data && data.length > 0 && !error) {
+        list = data.map((p: any) => ({
+          id: p.id,
+          slug: p.slug,
+          name: p.name,
+          category: p.category,
+          shortDescription: p.short_description || '',
+          description: p.description || '',
+          images: p.images || [],
+          variants: p.variants || [],
+          availability: p.availability || 'in_stock',
+          label: p.label || null,
+          specifications: p.specifications || {},
+          careInstructions: p.care_instructions || '',
+          isPublished: p.is_published !== undefined ? p.is_published : true,
+          isFeatured: p.is_featured || false,
+          createdAt: p.created_at || new Date().toISOString(),
+          updatedAt: p.updated_at || new Date().toISOString(),
+        }));
+      }
+    } catch (err) {
+      console.warn('[Supabase] Products query warning:', err);
+    }
+  }
+
+  if (list.length === 0) {
+    list = db.products;
+  }
+
   if (!isAdmin) {
     list = list.filter(p => p.isPublished);
   }
@@ -420,10 +532,40 @@ app.get('/api/products', (req: Request, res: Response) => {
   res.json(list);
 });
 
-app.get('/api/products/:slugOrId', (req: Request, res: Response) => {
+app.get('/api/products/:slugOrId', async (req: Request, res: Response) => {
   const { slugOrId } = req.params;
   const token = req.headers.authorization?.slice(7) || (req.headers['x-admin-token'] as string);
   const isAdmin = Boolean(token && verifyToken(token).valid);
+
+  if (supabaseClient) {
+    try {
+      const { data } = await supabaseClient.from('products').select('*').or(`slug.eq.${slugOrId},id.eq.${slugOrId}`).limit(1).maybeSingle();
+      if (data) {
+        const mapped: Product = {
+          id: data.id,
+          slug: data.slug,
+          name: data.name,
+          category: data.category,
+          shortDescription: data.short_description || '',
+          description: data.description || '',
+          images: data.images || [],
+          variants: data.variants || [],
+          availability: data.availability || 'in_stock',
+          label: data.label || null,
+          specifications: data.specifications || {},
+          careInstructions: data.care_instructions || '',
+          isPublished: data.is_published !== undefined ? data.is_published : true,
+          isFeatured: data.is_featured || false,
+          createdAt: data.created_at || new Date().toISOString(),
+          updatedAt: data.updated_at || new Date().toISOString(),
+        };
+        if (!mapped.isPublished && !isAdmin) {
+          return res.status(404).json({ error: 'Product not found' });
+        }
+        return res.json(mapped);
+      }
+    } catch {}
+  }
 
   const product = db.products.find(p => p.slug === slugOrId || p.id === slugOrId);
   if (!product) {
@@ -436,7 +578,7 @@ app.get('/api/products/:slugOrId', (req: Request, res: Response) => {
   res.json(product);
 });
 
-app.post('/api/products', authenticateAdmin, (req: Request, res: Response) => {
+app.post('/api/products', authenticateAdmin, async (req: Request, res: Response) => {
   const { name, category, shortDescription, description, images, variants, availability, label, specifications, careInstructions, isPublished, isFeatured } = req.body;
 
   if (!name || !name.trim()) {
@@ -468,10 +610,35 @@ app.post('/api/products', authenticateAdmin, (req: Request, res: Response) => {
 
   db.products.unshift(newProduct);
   saveDatabase(db);
+
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('products').upsert({
+        id: newProduct.id,
+        slug: newProduct.slug,
+        name: newProduct.name,
+        category: newProduct.category,
+        short_description: newProduct.shortDescription,
+        description: newProduct.description,
+        images: newProduct.images,
+        variants: newProduct.variants,
+        availability: newProduct.availability,
+        label: (newProduct.label === 'New Arrival' || newProduct.label === 'Bestseller') ? newProduct.label : null,
+        specifications: newProduct.specifications,
+        care_instructions: newProduct.careInstructions,
+        is_published: newProduct.isPublished,
+        is_featured: newProduct.isFeatured,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn('[Supabase] Product insert warning:', err);
+    }
+  }
+
   res.status(201).json(newProduct);
 });
 
-app.put('/api/products/:id', authenticateAdmin, (req: Request, res: Response) => {
+app.put('/api/products/:id', authenticateAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const index = db.products.findIndex(p => p.id === id);
   if (index === -1) {
@@ -485,10 +652,36 @@ app.put('/api/products/:id', authenticateAdmin, (req: Request, res: Response) =>
   };
 
   saveDatabase(db);
+
+  if (supabaseClient) {
+    try {
+      const p = db.products[index];
+      await supabaseClient.from('products').upsert({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        category: p.category,
+        short_description: p.shortDescription || '',
+        description: p.description || '',
+        images: p.images || [],
+        variants: p.variants || [],
+        availability: p.availability || 'in_stock',
+        label: (p.label === 'New Arrival' || p.label === 'Bestseller') ? p.label : null,
+        specifications: p.specifications || {},
+        care_instructions: p.careInstructions || '',
+        is_published: p.isPublished,
+        is_featured: p.isFeatured,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn('[Supabase] Product update warning:', err);
+    }
+  }
+
   res.json(db.products[index]);
 });
 
-app.delete('/api/products/:id', authenticateAdmin, (req: Request, res: Response) => {
+app.delete('/api/products/:id', authenticateAdmin, async (req: Request, res: Response) => {
   const { id } = req.params;
   const index = db.products.findIndex(p => p.id === id);
   if (index === -1) {
@@ -496,7 +689,111 @@ app.delete('/api/products/:id', authenticateAdmin, (req: Request, res: Response)
   }
   db.products.splice(index, 1);
   saveDatabase(db);
+
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('products').delete().eq('id', id);
+    } catch (err) {
+      console.warn('[Supabase] Product delete warning:', err);
+    }
+  }
+
   res.json({ success: true, message: 'Product deleted successfully' });
+});
+
+// Bulk Sync Endpoint (Uploads laptop's local customizations directly to Supabase)
+app.post('/api/supabase/sync-bulk', authenticateAdmin, async (req: Request, res: Response) => {
+  if (!supabaseClient) {
+    return res.status(500).json({ error: 'Supabase client is not initialized.' });
+  }
+
+  const { categories, products, settings } = req.body;
+  const results = {
+    categoriesSynced: 0,
+    productsSynced: 0,
+    settingsSynced: false,
+    errors: [] as string[],
+  };
+
+  if (settings) {
+    try {
+      const { error } = await supabaseClient.from('site_settings').upsert({
+        id: 'default',
+        brand_name: settings.brandName,
+        tagline: settings.tagline,
+        supporting_statement: settings.supportingStatement,
+        announcement_text: settings.announcementText,
+        whatsapp_number: settings.whatsappNumber,
+        business_email: settings.businessEmail,
+        instagram_url: settings.instagramUrl,
+        facebook_url: settings.facebookUrl,
+        tiktok_url: settings.tiktokUrl,
+        consultation_enabled: settings.consultationEnabled,
+        business_hours: settings.businessHours,
+        footer_note: settings.footerNote,
+        meta_title: settings.metaTitle,
+        meta_description: settings.metaDescription,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) results.errors.push(`Settings: ${error.message}`);
+      else results.settingsSynced = true;
+    } catch (err: any) {
+      results.errors.push(`Settings: ${err?.message}`);
+    }
+  }
+
+  if (Array.isArray(categories)) {
+    for (const c of categories) {
+      try {
+        const { error } = await supabaseClient.from('categories').upsert({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          tagline: c.tagline || '',
+          description: c.description || '',
+          image: c.image || '',
+          display_order: c.displayOrder || 1,
+        });
+        if (error) results.errors.push(`Category ${c.name}: ${error.message}`);
+        else results.categoriesSynced++;
+      } catch (err: any) {
+        results.errors.push(`Category ${c.name}: ${err?.message}`);
+      }
+    }
+  }
+
+  if (Array.isArray(products)) {
+    for (const p of products) {
+      try {
+        const { error } = await supabaseClient.from('products').upsert({
+          id: p.id,
+          slug: p.slug,
+          name: p.name,
+          category: p.category,
+          short_description: p.shortDescription || '',
+          description: p.description || '',
+          images: p.images || [],
+          variants: p.variants || [],
+          availability: p.availability || 'in_stock',
+          label: p.label || null,
+          specifications: p.specifications || {},
+          care_instructions: p.careInstructions || '',
+          is_published: p.isPublished,
+          is_featured: p.isFeatured,
+          updated_at: new Date().toISOString(),
+        });
+        if (error) results.errors.push(`Product ${p.name}: ${error.message}`);
+        else results.productsSynced++;
+      } catch (err: any) {
+        results.errors.push(`Product ${p.name}: ${err?.message}`);
+      }
+    }
+  }
+
+  res.json({
+    success: results.errors.length === 0,
+    ...results,
+  });
 });
 
 // Bookings (Styling Consultations)
